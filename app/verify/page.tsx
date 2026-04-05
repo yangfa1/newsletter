@@ -1,4 +1,4 @@
-import { Suspense } from 'next'
+import { Suspense } from 'react'
 import VerifyClient from './VerifyClient'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
