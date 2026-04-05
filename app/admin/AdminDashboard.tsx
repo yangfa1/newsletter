@@ -40,6 +40,7 @@ export default function AdminDashboard({ email }: { email: string }) {
         </div>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-blue-200">{email}</span>
+          <Link href="/admin/newsletter-types" className="text-blue-300 hover:text-white">Newsletters</Link>
           <Link href="/" className="text-blue-300 hover:text-white">← Site</Link>
         </div>
       </header>

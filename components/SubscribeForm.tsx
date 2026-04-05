@@ -1,17 +1,32 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-const NEWSLETTERS = [
-  { slug: 'weekly-financial-report', label: 'Weekly Financial Report', desc: 'Every Monday morning' },
-  { slug: 'market-forecast', label: 'Next Week Market Forecast', desc: 'Every Friday afternoon' },
-]
+interface NewsletterType {
+  id: string
+  friendly_name: string
+  folder_name: string
+  description: string | null
+}
 
 export default function SubscribeForm() {
+  const [newsletters, setNewsletters] = useState<NewsletterType[]>([])
+  const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
-  const [selected, setSelected] = useState<string[]>(['weekly-financial-report', 'market-forecast'])
+  const [selected, setSelected] = useState<string[]>([])
   const [mode, setMode] = useState<'subscribe' | 'unsubscribe'>('subscribe')
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    fetch('/api/newsletter-types')
+      .then(r => r.json())
+      .then(d => {
+        setNewsletters(d.types || [])
+        setSelected((d.types || []).map((t: NewsletterType) => t.folder_name))
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
 
   const toggle = (slug: string) => {
     setSelected(prev =>
@@ -82,34 +97,42 @@ export default function SubscribeForm() {
           {mode === 'subscribe' && (
             <div className="space-y-2">
               <p className="text-blue-100 text-sm font-medium">Select newsletters:</p>
-              {NEWSLETTERS.map(n => (
-                <label key={n.slug} className="flex items-start gap-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(n.slug)}
-                    onChange={() => toggle(n.slug)}
-                    className="mt-1 w-4 h-4 rounded accent-gold-400 cursor-pointer"
-                  />
-                  <div>
-                    <div className="text-white text-sm font-medium group-hover:text-gold-400 transition-colors">{n.label}</div>
-                    <div className="text-blue-200 text-xs">{n.desc}</div>
-                  </div>
-                </label>
-              ))}
+              {loading ? (
+                <p className="text-blue-200 text-sm">Loading newsletters...</p>
+              ) : newsletters.length === 0 ? (
+                <p className="text-blue-200 text-sm">No newsletters available.</p>
+              ) : (
+                newsletters.map(n => (
+                  <label key={n.folder_name} className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(n.folder_name)}
+                      onChange={() => toggle(n.folder_name)}
+                      className="mt-1 w-4 h-4 rounded accent-gold-400 cursor-pointer"
+                    />
+                    <div>
+                      <div className="text-white text-sm font-medium group-hover:text-gold-400 transition-colors">
+                        {n.friendly_name}
+                      </div>
+                      {n.description && (
+                        <div className="text-blue-200 text-xs">{n.description}</div>
+                      )}
+                    </div>
+                  </label>
+                ))
+              )}
             </div>
           )}
 
           {/* Email */}
-          <div>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-gold-400 transition"
-            />
-          </div>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-gold-400 transition"
+          />
 
           {status === 'error' && (
             <p className="text-red-300 text-sm">{message}</p>
@@ -117,10 +140,10 @@ export default function SubscribeForm() {
 
           <button
             type="submit"
-            disabled={status === 'loading'}
+            disabled={status === 'loading' || loading}
             className="w-full bg-gold-500 hover:bg-gold-600 text-brand-950 font-bold py-3 rounded-lg transition-colors disabled:opacity-50"
           >
-            {status === 'loading' ? 'Sending...' : mode === 'subscribe' ? 'Subscribe — It\'s Free' : 'Unsubscribe'}
+            {status === 'loading' ? 'Sending...' : mode === 'subscribe' ? "Subscribe — It's Free" : 'Unsubscribe'}
           </button>
 
           <p className="text-blue-200 text-xs text-center">
