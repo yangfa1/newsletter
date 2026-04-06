@@ -10,10 +10,9 @@ interface NewsletterType {
 
 export default function SubscribeForm() {
   const [newsletters, setNewsletters] = useState<NewsletterType[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loadingTypes, setLoadingTypes] = useState(true)
   const [email, setEmail] = useState('')
   const [selected, setSelected] = useState<string[]>([])
-  const [mode, setMode] = useState<'subscribe' | 'unsubscribe'>('subscribe')
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
 
@@ -23,9 +22,9 @@ export default function SubscribeForm() {
       .then(d => {
         setNewsletters(d.types || [])
         setSelected((d.types || []).map((t: NewsletterType) => t.folder_name))
-        setLoading(false)
+        setLoadingTypes(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => setLoadingTypes(false))
   }, [])
 
   const toggle = (slug: string) => {
@@ -37,14 +36,14 @@ export default function SubscribeForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) return
-    if (mode === 'subscribe' && selected.length === 0) {
+    if (selected.length === 0) {
       setMessage('Please select at least one newsletter.')
       setStatus('error')
       return
     }
     setStatus('loading')
     try {
-      const res = await fetch(`/api/${mode}`, {
+      const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, newsletters: selected }),
@@ -77,52 +76,34 @@ export default function SubscribeForm() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Mode toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-white/20 text-sm font-medium">
-            {(['subscribe', 'unsubscribe'] as const).map(m => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => { setMode(m); setStatus('idle'); setMessage('') }}
-                className={`flex-1 py-2 capitalize transition-colors ${
-                  mode === m ? 'bg-white text-brand-800' : 'text-white hover:bg-white/10'
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-
-          {/* Newsletters (subscribe only) */}
-          {mode === 'subscribe' && (
-            <div className="space-y-2">
-              <p className="text-blue-100 text-sm font-medium">Select newsletters:</p>
-              {loading ? (
-                <p className="text-blue-200 text-sm">Loading newsletters...</p>
-              ) : newsletters.length === 0 ? (
-                <p className="text-blue-200 text-sm">No newsletters available.</p>
-              ) : (
-                newsletters.map(n => (
-                  <label key={n.folder_name} className="flex items-start gap-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(n.folder_name)}
-                      onChange={() => toggle(n.folder_name)}
-                      className="mt-1 w-4 h-4 rounded accent-gold-400 cursor-pointer"
-                    />
-                    <div>
-                      <div className="text-white text-sm font-medium group-hover:text-gold-400 transition-colors">
-                        {n.friendly_name}
-                      </div>
-                      {n.description && (
-                        <div className="text-blue-200 text-xs">{n.description}</div>
-                      )}
+          {/* Newsletters */}
+          <div className="space-y-2">
+            <p className="text-blue-100 text-sm font-medium">Select newsletters:</p>
+            {loadingTypes ? (
+              <p className="text-blue-200 text-sm">Loading newsletters...</p>
+            ) : newsletters.length === 0 ? (
+              <p className="text-blue-200 text-sm">No newsletters available.</p>
+            ) : (
+              newsletters.map(n => (
+                <label key={n.folder_name} className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(n.folder_name)}
+                    onChange={() => toggle(n.folder_name)}
+                    className="mt-1 w-4 h-4 rounded accent-gold-400 cursor-pointer"
+                  />
+                  <div>
+                    <div className="text-white text-sm font-medium group-hover:text-gold-400 transition-colors">
+                      {n.friendly_name}
                     </div>
-                  </label>
-                ))
-              )}
-            </div>
-          )}
+                    {n.description && (
+                      <div className="text-blue-200 text-xs">{n.description}</div>
+                    )}
+                  </div>
+                </label>
+              ))
+            )}
+          </div>
 
           {/* Email */}
           <input
@@ -140,14 +121,14 @@ export default function SubscribeForm() {
 
           <button
             type="submit"
-            disabled={status === 'loading' || loading}
+            disabled={status === 'loading' || loadingTypes}
             className="w-full bg-gold-500 hover:bg-gold-600 text-brand-950 font-bold py-3 rounded-lg transition-colors disabled:opacity-50"
           >
-            {status === 'loading' ? 'Sending...' : mode === 'subscribe' ? "Subscribe — It's Free" : 'Unsubscribe'}
+            {status === 'loading' ? 'Sending...' : "Subscribe — It's Free"}
           </button>
 
           <p className="text-blue-200 text-xs text-center">
-            We'll send a verification link to your email. No password required.
+            Already subscribed? Enter your email above to manage your preferences.
           </p>
         </form>
       )}

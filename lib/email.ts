@@ -61,6 +61,41 @@ export async function sendUnsubscribeConfirmEmail(email: string) {
   })
 }
 
+export async function sendManageLink(email: string, token: string) {
+  const resend = getResend()
+  const from = getFrom()
+  const base = getBase()
+  const link = `${base}/manage?token=${token}`
+  await resend.emails.send({
+    from,
+    to: email,
+    subject: '⚙️ Manage your Wise Win Newsletter subscriptions',
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f8fafc;border-radius:12px;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="display:inline-block;background:#0158a0;color:white;font-weight:bold;padding:8px 16px;border-radius:8px;">wisewin.ca · 慧盈财富</div>
+        </div>
+        <h2 style="color:#0a3d6e;font-size:22px;margin-bottom:12px;">Manage your subscriptions</h2>
+        <p style="color:#4b5563;line-height:1.6;margin-bottom:24px;">
+          Click the button below to update your newsletter preferences. You can add, remove, or unsubscribe from all newsletters.
+        </p>
+        <div style="text-align:center;margin-bottom:24px;">
+          <a href="${link}" style="display:inline-block;background:#e8b400;color:#072848;font-weight:bold;padding:14px 32px;border-radius:8px;text-decoration:none;font-size:16px;">
+            Manage My Subscriptions
+          </a>
+        </div>
+        <p style="color:#9ca3af;font-size:12px;text-align:center;">
+          If you didn't request this, you can safely ignore this email.
+        </p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+        <p style="color:#9ca3af;font-size:11px;text-align:center;">
+          © ${new Date().getFullYear()} Wise Win Financial · <a href="https://www.wisewin.ca" style="color:#9ca3af;">wisewin.ca</a>
+        </p>
+      </div>
+    `,
+  })
+}
+
 export async function sendAdminMagicLink(email: string, token: string) {
   const resend = getResend()
   const from = getFrom()

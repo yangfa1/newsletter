@@ -1,6 +1,6 @@
 import { getDb } from '@/lib/db'
 import { NextResponse } from 'next/server'
-import { sendVerificationEmail } from '@/lib/email'
+import { sendVerificationEmail, sendManageLink } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
@@ -13,34 +13,53 @@ export async function POST(req: Request) {
 
     const existing = await sql`SELECT * FROM subscribers WHERE email = ${normalizedEmail}`
 
-    let token: string
-
     if (existing.length > 0) {
-      const result = await sql`
-        UPDATE subscribers
-        SET status = 'pending', newsletters = ${newsletters}, token = gen_random_uuid(), updated_at = now()
-        WHERE email = ${normalizedEmail}
-        RETURNING token
-      `
-      token = result[0].token
-      if (existing[0].status === 'active') {
+      const sub = existing[0]
+
+      if (sub.status === 'active') {
+        // Existing active subscriber → send manage link
+        await sendManageLink(normalizedEmail, sub.token)
         return NextResponse.json({
-          message: `You're already subscribed! We've sent a new verification link to update your preferences.`
+          message: `You're already subscribed! We've sent a link to manage your preferences.`
+        })
+      } else if (sub.status === 'pending') {
+        // Resend verification
+        const result = await sql`
+          UPDATE subscribers
+          SET newsletters = ${newsletters}, token = gen_random_uuid(), updated_at = now()
+          WHERE email = ${normalizedEmail}
+          RETURNING token
+        `
+        await sendVerificationEmail(normalizedEmail, result[0].token)
+        return NextResponse.json({
+          message: `We've resent your verification link to ${normalizedEmail}. Please check your inbox!`
+        })
+      } else {
+        // Inactive → reactivate
+        const result = await sql`
+          UPDATE subscribers
+          SET status = 'pending', newsletters = ${newsletters}, token = gen_random_uuid(), updated_at = now()
+          WHERE email = ${normalizedEmail}
+          RETURNING token
+        `
+        await sendVerificationEmail(normalizedEmail, result[0].token)
+        return NextResponse.json({
+          message: `Welcome back! We've sent a verification link to ${normalizedEmail}.`
         })
       }
-    } else {
-      const result = await sql`
-        INSERT INTO subscribers (email, newsletters, status)
-        VALUES (${normalizedEmail}, ${newsletters}, 'pending')
-        RETURNING token
-      `
-      token = result[0].token
     }
 
-    await sendVerificationEmail(normalizedEmail, token)
+    // New subscriber
+    const result = await sql`
+      INSERT INTO subscribers (email, newsletters, status)
+      VALUES (${normalizedEmail}, ${newsletters}, 'pending')
+      RETURNING token
+    `
+    await sendVerificationEmail(normalizedEmail, result[0].token)
     return NextResponse.json({
       message: `We've sent a verification link to ${normalizedEmail}. Please check your inbox!`
     })
+
   } catch (err) {
     console.error('[subscribe]', err)
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })

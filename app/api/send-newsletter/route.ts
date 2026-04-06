@@ -18,10 +18,13 @@ function buildSubject(friendlyName: string, dateStr: string): string {
   return `${friendlyName} — ${formatDate(dateStr)}`
 }
 
-// Replace {{UNSUBSCRIBE_URL}} placeholder in HTML
-function injectUnsubscribeUrl(html: string, token: string): string {
-  const url = `${BASE()}/api/unsubscribe-link?token=${token}`
-  return html.replace(/\{\{UNSUBSCRIBE_URL\}\}/g, url)
+// Replace {{UNSUBSCRIBE_URL}} and {{MANAGE_URL}} placeholders in HTML
+function injectUrls(html: string, token: string): string {
+  const unsubUrl = `${BASE()}/api/unsubscribe-link?token=${token}`
+  const manageUrl = `${BASE()}/manage?token=${token}`
+  return html
+    .replace(/\{\{UNSUBSCRIBE_URL\}\}/g, unsubUrl)
+    .replace(/\{\{MANAGE_URL\}\}/g, manageUrl)
 }
 
 export async function POST(req: Request) {
@@ -74,7 +77,7 @@ export async function POST(req: Request) {
 
       await Promise.all(batch.map(async (subscriber) => {
         try {
-          const personalizedHtml = injectUnsubscribeUrl(html, subscriber.token)
+          const personalizedHtml = injectUrls(html, subscriber.token)
           await resend.emails.send({
             from,
             to: subscriber.email,
