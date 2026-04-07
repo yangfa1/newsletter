@@ -12,7 +12,7 @@ export async function GET() {
       WHERE active = true
       ORDER BY created_at ASC
     `
-    console.log('[newsletter-types] returned:', types.length, types.map((t: {folder_name: string}) => t.folder_name))
+    console.log('[newsletter-types] returned:', types.length, types.map((t: Record<string, unknown>) => t.folder_name))
     return NextResponse.json({ types, debug_count: types.length }, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
     })
