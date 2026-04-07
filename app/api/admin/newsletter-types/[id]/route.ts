@@ -6,19 +6,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await verifyAdminSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { friendly_name, description, active } = await req.json()
+  const body = await req.json()
   const sql = getDb()
 
-  // Build update explicitly to avoid COALESCE boolean issues
-  const result = await sql`
-    UPDATE newsletter_types
-    SET
-      friendly_name = CASE WHEN ${friendly_name ?? null} IS NOT NULL THEN ${friendly_name ?? ''} ELSE friendly_name END,
-      description   = CASE WHEN ${description ?? null} IS NOT NULL THEN ${description ?? ''} ELSE description END,
-      active        = CASE WHEN ${active ?? null} IS NOT NULL THEN ${active === true} ELSE active END
-    WHERE id = ${params.id}
-    RETURNING *
-  `
+  // Update each field separately only if provided
+  if (body.active !== undefined) {
+    const isActive = body.active === true || body.active === 'true'
+    await sql`UPDATE newsletter_types SET active = ${isActive} WHERE id = ${params.id}`
+  }
+  if (body.friendly_name !== undefined) {
+    await sql`UPDATE newsletter_types SET friendly_name = ${body.friendly_name} WHERE id = ${params.id}`
+  }
+  if (body.description !== undefined) {
+    await sql`UPDATE newsletter_types SET description = ${body.description} WHERE id = ${params.id}`
+  }
+
+  const result = await sql`SELECT * FROM newsletter_types WHERE id = ${params.id}`
   if (!result.length) return NextResponse.json({ error: 'Not found.' }, { status: 404 })
   return NextResponse.json({ type: result[0] })
 }
