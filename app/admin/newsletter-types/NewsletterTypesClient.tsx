@@ -18,6 +18,8 @@ export default function NewsletterTypesClient() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ friendly_name: '', folder_name: '', description: '' })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ friendly_name: '', description: '' })
 
   const load = () => {
     fetch('/api/admin/newsletter-types')
@@ -47,6 +49,23 @@ export default function NewsletterTypesClient() {
     setSaving(false)
   }
 
+  const handleEdit = (t: NewsletterType) => {
+    setEditingId(t.id)
+    setEditForm({ friendly_name: t.friendly_name, description: t.description || '' })
+  }
+
+  const handleEditSave = async (id: string) => {
+    setSaving(true)
+    await fetch(`/api/admin/newsletter-types/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editForm),
+    })
+    setEditingId(null)
+    setSaving(false)
+    load()
+  }
+
   const toggleActive = async (id: string, active: boolean) => {
     await fetch(`/api/admin/newsletter-types/${id}`, {
       method: 'PATCH',
@@ -62,7 +81,6 @@ export default function NewsletterTypesClient() {
     load()
   }
 
-  // Auto-generate folder_name from friendly_name
   const handleNameChange = (val: string) => {
     setForm(f => ({
       ...f,
@@ -77,7 +95,6 @@ export default function NewsletterTypesClient() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top bar */}
       <header className="bg-brand-950 text-white px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-brand-700 rounded-lg flex items-center justify-center font-bold text-sm">WW</div>
@@ -87,8 +104,6 @@ export default function NewsletterTypesClient() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-
-        {/* Header + Add button */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-brand-900">Newsletter Types</h1>
@@ -105,36 +120,35 @@ export default function NewsletterTypesClient() {
             <h2 className="font-semibold text-brand-900">New Newsletter Type</h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Friendly Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Friendly Name * (English)</label>
                 <input
                   required
                   value={form.friendly_name}
                   onChange={e => handleNameChange(e.target.value)}
-                  placeholder="Weekly Financial Report"
+                  placeholder="Financial Planning"
                   className="input-field"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Folder Name * <span className="text-gray-400 font-normal">(GitHub folder)</span>
+                  Folder Name * <span className="text-gray-400 font-normal">(GitHub folder, no spaces)</span>
                 </label>
                 <input
                   required
                   value={form.folder_name}
                   onChange={e => setForm(f => ({ ...f, folder_name: e.target.value }))}
-                  placeholder="weekly-financial-report"
+                  placeholder="financial-planning"
                   pattern="[a-z0-9-]+"
                   className="input-field font-mono text-sm"
                 />
-                <p className="text-xs text-gray-400 mt-1">Lowercase, hyphens only. Must match the GitHub folder name exactly.</p>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description (Chinese)</label>
               <input
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Comprehensive market analysis every Monday morning"
+                placeholder="每月税务优化、RRSP/TFSA策略、退休规划及投资理财专题"
                 className="input-field"
               />
             </div>
@@ -169,34 +183,58 @@ export default function NewsletterTypesClient() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {types.map(t => (
-                  <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{t.friendly_name}</td>
-                    <td className="px-6 py-4 font-mono text-xs text-gray-500 bg-gray-50">{t.folder_name}</td>
-                    <td className="px-6 py-4 text-gray-500 text-xs max-w-xs truncate">{t.description || '—'}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        t.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {t.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-3 text-xs">
-                        <button
-                          onClick={() => toggleActive(t.id, t.active)}
-                          className="text-brand-700 hover:underline"
-                        >
-                          {t.active ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(t.id, t.friendly_name)}
-                          className="text-red-500 hover:underline"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  editingId === t.id ? (
+                    <tr key={t.id} className="bg-blue-50">
+                      <td className="px-4 py-3">
+                        <input
+                          value={editForm.friendly_name}
+                          onChange={e => setEditForm(f => ({ ...f, friendly_name: e.target.value }))}
+                          className="input-field text-sm"
+                          placeholder="Friendly Name"
+                        />
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-400">{t.folder_name}</td>
+                      <td className="px-4 py-3">
+                        <input
+                          value={editForm.description}
+                          onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                          className="input-field text-sm"
+                          placeholder="中文描述"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${t.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {t.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-3 text-xs">
+                          <button onClick={() => handleEditSave(t.id)} disabled={saving} className="text-brand-700 font-semibold hover:underline">Save</button>
+                          <button onClick={() => setEditingId(null)} className="text-gray-400 hover:underline">Cancel</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 font-medium text-gray-900">{t.friendly_name}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-gray-500 bg-gray-50">{t.folder_name}</td>
+                      <td className="px-6 py-4 text-gray-500 text-xs max-w-xs truncate">{t.description || '—'}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${t.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {t.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-3 text-xs">
+                          <button onClick={() => handleEdit(t)} className="text-gray-500 hover:underline">Edit</button>
+                          <button onClick={() => toggleActive(t.id, t.active)} className="text-brand-700 hover:underline">
+                            {t.active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button onClick={() => handleDelete(t.id, t.friendly_name)} className="text-red-500 hover:underline">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
                 ))}
               </tbody>
             </table>
@@ -207,9 +245,8 @@ export default function NewsletterTypesClient() {
         <div className="card bg-blue-50 border-blue-100">
           <h3 className="font-semibold text-brand-900 mb-2">📁 GitHub Folder Setup</h3>
           <p className="text-sm text-gray-600 mb-3">
-            When you add a new newsletter type, create a matching folder in the{' '}
-            <a href="https://github.com/yangfa1/wisewin-newsletters" target="_blank" rel="noopener noreferrer"
-              className="text-brand-700 underline">wisewin-newsletters</a> repo.
+            Each newsletter type needs a matching folder in the{' '}
+            <a href="https://github.com/yangfa1/wisewin-newsletters" target="_blank" rel="noopener noreferrer" className="text-brand-700 underline">wisewin-newsletters</a> repo.
           </p>
           <div className="bg-white rounded-lg p-3 font-mono text-xs text-gray-700">
             {types.filter(t => t.active).map(t => (
@@ -217,7 +254,6 @@ export default function NewsletterTypesClient() {
             ))}
           </div>
         </div>
-
       </div>
     </div>
   )
