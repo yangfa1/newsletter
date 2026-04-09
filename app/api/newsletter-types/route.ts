@@ -1,9 +1,11 @@
 import { getDb } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  headers() // prevent edge/CDN caching — same behaviour as authenticated routes
   try {
     const sql = getDb()
     const all = await sql`SELECT * FROM newsletter_types ORDER BY created_at ASC`
