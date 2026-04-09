@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 
 export function getDb() {
-  // Use direct connection to avoid pooler caching issues
+  // Prefer direct non-pooling connection to avoid stale read replicas
   const url = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL!
   return neon(url)
 }
