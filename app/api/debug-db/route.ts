@@ -10,11 +10,13 @@ export async function GET() {
 
   const sql = getDb()
   const rows = await sql`SELECT folder_name, active FROM newsletter_types ORDER BY created_at ASC`
+  const activeRows = await sql`SELECT id, friendly_name, folder_name, description FROM newsletter_types WHERE active = true ORDER BY created_at ASC`
 
   return NextResponse.json({
     active_url: active,
     pooling_host: pooling.split('@')[1]?.split('/')[0] || 'not set',
     direct_host: direct.split('@')[1]?.split('/')[0] || 'not set',
-    rows
+    all_rows: rows,
+    active_rows: activeRows
   })
 }
