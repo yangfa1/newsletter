@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     const errors: string[] = []
 
     // Send in batches of 50
-    const BATCH_SIZE = 50
+    const BATCH_SIZE = 2
     for (let i = 0; i < subscribers.length; i += BATCH_SIZE) {
       const batch = subscribers.slice(i, i + BATCH_SIZE)
 
